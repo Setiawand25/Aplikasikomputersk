@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediDiet Pro - Panduan Menu Sehat Medis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f3f4f6 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        /* Glassmorphism Styles */
+        .glass-panel { 
+            background: rgba(255, 255, 255, 0.7); 
+            backdrop-filter: blur(16px); 
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Scrollbar custom */
+        .hide-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
+        .hide-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .hide-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .hide-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+        
+        /* Image Hover Zoom */
+        .img-zoom-container { overflow: hidden; }
+        .img-zoom-container img { transition: transform 0.5s ease; }
+        .group:hover .img-zoom-container img { transform: scale(1.08); }
+    </style>
+</head>
+<body class="text-slate-800 antialiased flex flex-col">
+
+    <header class="glass-panel sticky top-0 z-50 border-b border-white/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fas fa-heartbeat text-white text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-extrabold text-slate-800 tracking-tight">MediDiet<span class="text-blue-600">.</span></h1>
+                    <p class="text-[10px] sm:text-xs text-slate-500 font-medium uppercase tracking-wider">Clinical Nutrition Guide</p>
+                </div>
+            </div>
+            <div class="hidden sm:flex items-center gap-3 text-xs font-semibold text-slate-600 bg-white/60 px-4 py-2 rounded-full border border-white">
+                <i class="fas fa-certificate text-emerald-500 text-sm"></i>
+                Evidence-Based Menus
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full relative z-10">
+        <div class="flex flex-col lg:flex-row gap-8">
+            
+            <div class="w-full lg:w-80 flex-shrink-0">
+                <div class="sticky top-24 space-y-6">
+                    
+                    <!-- Search Bar -->
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <i class="fas fa-search text-slate-400"></i>
+                        </div>
+                        <input type="text" id="searchInput" placeholder="Cari kondisi kesehatan..." 
+                            class="w-full pl-11 pr-4 py-3.5 glass-panel rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow placeholder-slate-400">
+                    </div>
+
+                    <!-- Disease List -->
+                    <div>
+                        <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 px-2">Katalog Penyakit</h2>
+                        <div id="diseaseList" class="flex lg:flex-col overflow-x-auto lg:overflow-visible gap-2.5 pb-4 lg:pb-0 hide-scrollbar snap-x snap-mandatory">
+                            <!-- Buttons injected via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full flex-grow min-w-0">
+                <div id="contentArea" class="glass-panel rounded-3xl p-6 sm:p-8 min-h-[600px] border border-white shadow-xl shadow-blue-900/5">
+                    <!-- Default loading/content will be injected here -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // --- DATABASE MEDIS & RESEP LENGKAP ---
+        const medicalData = {
+            diabetes: {
+                id: "diabetes",
+                name: "Diabetes Mellitus Tipe 2",
+                icon: "fa-tint",
+                theme: "blue",
+                desc: "Fokus pada pengendalian kadar gula darah dengan memilih karbohidrat kompleks berserat tinggi (Indeks Glikemik rendah) dan membatasi gula tambahan.",
+                sources: ["American Diabetes Association (ADA)"],
+                dos: ["Karbohidrat kompleks (Beras merah, oat)", "Protein tanpa lemak", "Sayuran non-tepung"],
+                donts: ["Gula murni, madu berlebih, sirup", "Karbohidrat sederhana (Nasi putih berlebih)", "Minuman manis"],
+                menus: [
+                    { 
+                        name: "Grilled Chicken Quinoa Bowl", 
+                        time: "Makan Siang",
+                        technique: "Panggang (Grilling)",
+                        techIcon: "fa-fire-burner",
+                        ingredients: ["Dada Ayam", "Quinoa", "Bayam", "Zaitun"],
+                        desc: "Dada ayam tinggi protein dipanggang ringan tanpa kecap manis, disajikan di atas quinoa yang memiliki Indeks Glikemik sangat rendah.", 
+                        image: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80"
+                    },
+                    { 
+                        name: "Sup Ikan Nila Kemangi", 
+                        time: "Makan Malam",
+                        technique: "Rebus Bening (Boiling)",
+                        techIcon: "fa-temperature-arrow-up",
+                        ingredients: ["Ikan Nila", "Tomat", "Kemangi", "Jahe"],
+                        desc: "Sup bening tanpa santan, rendah kalori dan lemak. Ikan nila memberikan asam amino esensial tanpa memicu lonjakan gula darah.", 
+                        image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=600&q=80"
+                    }
+                ]
+            },
+            hipertensi: {
+                id: "hipertensi",
+                name: "Hipertensi (Darah Tinggi)",
+                icon: "fa-heart-pulse",
+                theme: "rose",
+                desc: "Menerapkan prinsip diet DASH. Fokus pada penurunan asupan garam (natrium) maksimal 1 sdt per hari dan memperbanyak kalium dari buah/sayur.",
+                sources: ["Diet DASH - National Institutes of Health"],
+                dos: ["Buah tinggi kalium (Pisang, melon)", "Sayuran hijau pekat", "Biji-bijian utuh (whole grains)"],
+                donts: ["Makanan kalengan tinggi garam", "Penyedap rasa (MSG)", "Saus kemasan (kecap asin, saus tiram)"],
+                menus: [
+                    { 
+                        name: "Oatmeal Pisang Almond", 
+                        time: "Sarapan",
+                        technique: "Seduh (Steeping)",
+                        techIcon: "fa-mug-hot",
+                        ingredients: ["Rolled Oat", "Pisang", "Almond", "Susu Skim"],
+                        desc: "Kaya akan kalium dari pisang yang efektif membantu menurunkan tekanan darah, dipadukan oat bebas natrium.", 
+                        image: "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&w=600&q=80"
+                    },
+                    { 
+                        name: "Lemon Baked Salmon", 
+                        time: "Makan Malam",
+                        technique: "Oven (Baking)",
+                        techIcon: "fa-fire",
+                        ingredients: ["Salmon", "Lemon", "Brokoli", "Bawang Putih"],
+                        desc: "Salmon kaya Omega-3 dipanggang. Perasan lemon dan bawang putih digunakan sebagai penguat rasa alami pengganti garam.", 
+                        image: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=600&q=80"
+                    }
+                ]
+            },
+            gerd: {
+                id: "gerd",
+                name: "GERD / Asam Lambung",
+                icon: "fa-fire-extinguisher",
+                theme: "amber",
+                desc: "Diet untuk mencegah iritasi lambung. Hindari pemicu asam dan pilih makanan bertekstur lembut serta teknik masak tanpa banyak minyak.",
+                sources: ["American College of Gastroenterology"],
+                dos: ["Karbohidrat mudah cerna", "Protein rendah lemak", "Buah non-sitrus (Pisang, Pepaya)"],
+                donts: ["Makanan pedas dan asam", "Gorengan dan santan kental", "Kafein, cokelat, bawang mentah"],
+                menus: [
+                    { 
+                        name: "Sup Ayam Jahe Hangat", 
+                        time: "Makan Siang",
+                        technique: "Rebus Perlahan (Simmering)",
+                        techIcon: "fa-spoon",
+                        ingredients: ["Ayam Tanpa Kulit", "Jahe", "Wortel", "Kentang"],
+                        desc: "Kuah kaldu alami yang menenangkan lambung. Ekstrak jahe terbukti membantu meredakan mual akibat naiknya asam lambung.", 
+                        image: "https://images.unsplash.com/photo-1603048297172-c92544798d5e?auto=format&fit=crop&w=600&q=80"
+                    },
+                    { 
+                        name: "Roti Gandum Putih Telur", 
+                        time: "Sarapan",
+                        technique: "Panggang Kering (Toasting)",
+                        techIcon: "fa-bread-slice",
+                        ingredients: ["Roti Gandum Halus", "Putih Telur", "Alpukat (Tipis)"],
+                        desc: "Kuning telur tinggi lemak bisa memicu GERD, sehingga hanya putih telur rebus yang digunakan. Sangat aman dan mudah dicerna lambung pagi hari.", 
+                        image: "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?auto=format&fit=crop&w=600&q=80"
+                    }
+                ]
+            },
+            kolesterol: {
+                id: "kolesterol",
+                name: "Kolesterol Tinggi",
+                icon: "fa-chart-pie",
+                theme: "emerald",
+                desc: "Mengurangi asupan lemak jenuh dan lemak trans. Sangat direkomendasikan meningkatkan asupan serat larut air (oat, kacang-kacangan) untuk mengikat LDL.",
+                sources: ["American Heart Association (AHA)"],
+                dos: ["Serat larut (Oat, apel, kacang)", "Ikan berlemak baik (Omega-3)", "Minyak sehat (Zaitun)"],
+                donts: ["Gorengan dan fast food", "Daging berlemak, kulit ayam", "Jeroan dan susu full-cream"],
+                menus: [
+                    { 
+                        name: "Tumis Tempe Sayur Renyah", 
+                        time: "Makan Siang",
+                        technique: "Tumis Cepat (Sautéing)",
+                        techIcon: "fa-fire-burner",
+                        ingredients: ["Tempe", "Kacang Panjang", "Wortel", "Olive Oil"],
+                        desc: "Tempe mengandung isoflavon dan sterol nabati yang secara alami menekan kolesterol. Ditumis menggunakan sedikit minyak zaitun.", 
+                        image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=600&q=80"
+                    },
+                    { 
+                        name: "Overnight Chia Oats", 
+                        time: "Sarapan",
+                        technique: "Tanpa Pemanasan (Chilled)",
+                        techIcon: "fa-snowflake",
+                        ingredients: ["Oat", "Biji Chia", "Susu Almond", "Beri"],
+                        desc: "Kombinasi serat larut terbaik (oat) dan Omega-3 nabati (chia seeds) yang sangat ampuh menyapu kolesterol jahat di saluran cerna.", 
+                        image: "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=600&q=80"
+                    }
+                ]
+            },
+            asam_urat: {
+                id: "asam_urat",
+                name: "Asam Urat (Gout)",
+                icon: "fa-bone",
+                theme: "purple",
+                desc: "Diet rendah purin untuk mencegah penumpukan kristal asam urat di persendian. Ekstra hidrasi sangat krusial untuk membantu ginjal membuang asam urat.",
+                sources: ["Arthritis Foundation"],
+                dos: ["Susu rendah lemak (membuang asam urat)", "Telur (bebas purin)", "Buah tinggi Vitamin C"],
+                donts: ["Jeroan (ati, usus, otak)", "Seafood tertentu (udang, kerang, teri)", "Alkohol dan kaldu daging kental"],
+                menus: [
+                    { 
+                        name: "Omelet Putih Telur Sayur", 
+                        time: "Sarapan",
+                        technique: "Dadar (Pan-frying)",
+                        techIcon: "fa-egg",
+                        ingredients: ["Putih Telur", "Paprika", "Tomat", "Minyak Zaitun"],
+                        desc: "Telur adalah sumber protein hewani yang paling aman karena tidak mengandung purin. Paprika memberi asupan Vitamin C.", 
+                        image: "https://images.unsplash.com/photo-1510693042738-9e508cff2266?auto=format&fit=crop&w=600&q=80"
+                    },
+                    { 
+                        name: "Tahu Kukus Bumbu Jahe", 
+                        time: "Makan Malam",
+                        technique: "Kukus (Steaming)",
+                        techIcon: "fa-cloud",
+                        ingredients: ["Tahu Sutra", "Jahe", "Daun Bawang", "Kecap Asin Rendah"],
+                        desc: "Protein nabati (tahu) dikukus lembut. Jauh lebih aman dikonsumsi penderita asam urat dibanding daging merah atau hidangan laut.", 
+                        image: "https://images.unsplash.com/photo-1546069901-d5bfd2cbfb1f?auto=format&fit=crop&w=600&q=80"
+                    }
+                ]
+            }
+        };
+
+        // --- KONFIGURASI TEMA WARNA ---
+        const themeColors = {
+            blue: { bg: 'bg-blue-100', text: 'text-blue-700', active: 'bg-blue-600 text-white shadow-blue-500/30' },
+            rose: { bg: 'bg-rose-100', text: 'text-rose-700', active: 'bg-rose-600 text-white shadow-rose-500/30' },
+            amber: { bg: 'bg-amber-100', text: 'text-amber-700', active: 'bg-amber-500 text-white shadow-amber-500/30' },
+            emerald: { bg: 'bg-emerald-100', text: 'text-emerald-700', active: 'bg-emerald-600 text-white shadow-emerald-500/30' },
+            purple: { bg: 'bg-purple-100', text: 'text-purple-700', active: 'bg-purple-600 text-white shadow-purple-500/30' }
+        };
+
+        const diseaseKeys = Object.keys(medicalData);
+        let activeDiseaseId = diseaseKeys[0]; 
+        let searchQuery = "";
+
+        // DOM Elements
+        const diseaseListEl = document.getElementById('diseaseList');
+        const contentAreaEl = document.getElementById('contentArea');
+        const searchInput = document.getElementById('searchInput');
+
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value.toLowerCase();
+            renderSidebar();
+        });
+
+        // --- FUNGSI RENDER SIDEBAR ---
+        function renderSidebar() {
+            diseaseListEl.innerHTML = '';
+            
+            // Filter daftar penyakit berdasarkan pencarian
+            const filteredKeys = diseaseKeys.filter(key => {
+                return medicalData[key].name.toLowerCase().includes(searchQuery);
+            });
+
+            if (filteredKeys.length === 0) {
+                diseaseListEl.innerHTML = `<p class="text-sm text-slate-500 italic p-2">Penyakit tidak ditemukan...</p>`;
+                return;
+            }
+
+            filteredKeys.forEach(key => {
+                const data = medicalData[key];
+                const isActive = key === activeDiseaseId;
+                const theme = themeColors[data.theme];
+                
+                const btnClasses = isActive 
+                    ? `${theme.active} shadow-lg ring-2 ring-offset-2 ring-${data.theme}-500/50 scale-[1.02]` 
+                    : `bg-white/80 text-slate-700 border border-slate-200 hover:bg-white hover:shadow-md hover:border-${data.theme}-300`;
+
+                const btn = document.createElement('button');
+                btn.className = `flex items-center gap-4 w-full p-3.5 rounded-2xl font-semibold transition-all duration-300 text-left snap-center ${btnClasses}`;
+                btn.style = "min-width: 240px;"; 
+                btn.onclick = () => {
+                    activeDiseaseId = key;
+                    renderSidebar();
+                    renderContent();
+                };
+
+                const iconBg = isActive ? 'bg-white/20' : theme.bg + ' ' + theme.text;
+                
+                btn.innerHTML = `
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg} transition-colors">
+                        <i class="fas ${data.icon} text-lg"></i>
+                    </div>
+                    <span class="text-[15px] truncate">${data.name}</span>
+                `;
+                diseaseListEl.appendChild(btn);
+            });
+        }
+
+        // --- FUNGSI RENDER KONTEN UTAMA ---
+        function renderContent() {
+            const data = medicalData[activeDiseaseId];
+            const theme = themeColors[data.theme];
+
+            // Render Badges Sumber
+            const sourcesHTML = data.sources.map(src => 
+                `<span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white text-slate-600 border border-slate-200 shadow-sm">
+                    <i class="fas fa-book-medical text-${data.theme}-500"></i> ${src}
+                </span>`
+            ).join('');
+
+            // Render Lists Do's and Don'ts
+            const dosHTML = data.dos.map(item => 
+                `<li class="flex items-start gap-3 mb-3 text-sm text-slate-700 font-medium">
+                    <div class="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <i class="fas fa-check text-emerald-600 text-[10px]"></i>
+                    </div>
+                    <span class="leading-relaxed">${item}</span>
+                </li>`
+            ).join('');
+
+            const dontsHTML = data.donts.map(item => 
+                `<li class="flex items-start gap-3 mb-3 text-sm text-slate-700 font-medium">
+                    <div class="w-5 h-5 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <i class="fas fa-times text-rose-600 text-[10px]"></i>
+                    </div>
+                    <span class="leading-relaxed">${item}</span>
+                </li>`
+            ).join('');
+
+            const menusHTML = data.menus.map(menu => {
+                const ingredientsTags = menu.ingredients.map(ing => 
+                    `<span class="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold border border-slate-200">${ing}</span>`
+                ).join('');
+
+                return `
+                <div class="glass-card rounded-2xl overflow-hidden group flex flex-col h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-default">
+                    <!-- Gambar Area -->
+                    <div class="relative h-48 img-zoom-container bg-slate-200">
+                        <img src="${menu.image}" alt="${menu.name}" class="w-full h-full object-cover">
+                        <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-slate-700 shadow-sm flex items-center gap-1.5">
+                            <i class="far fa-clock text-${data.theme}-500"></i> ${menu.time}
+                        </div>
+                    </div>
+                    
+                    <!-- Konten Menu -->
+                    <div class="p-5 flex flex-col flex-grow">
+                        <h4 class="font-extrabold text-slate-800 text-lg mb-1 leading-tight group-hover:text-${data.theme}-600 transition-colors">${menu.name}</h4>
+                        
+                        <!-- Teknik Memasak -->
+                        <div class="flex items-center gap-2 mb-4 mt-2">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-100">
+                                <i class="fas ${menu.techIcon}"></i> Teknik: ${menu.technique}
+                            </span>
+                        </div>
+
+                        <!-- Deskripsi -->
+                        <p class="text-sm text-slate-600 leading-relaxed mb-5 flex-grow">${menu.desc}</p>
+                        
+                        <!-- Bahan Baku (Tags) -->
+                        <div class="pt-4 border-t border-slate-100">
+                            <p class="text-[10px] uppercase font-bold text-slate-400 mb-2 tracking-wider">Bahan Utama:</p>
+                            <div class="flex flex-wrap gap-1.5">
+                                ${ingredientsTags}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `
+            }).join('');
+
+            // Inject Konten ke HTML
+            // Note: Key yang dipakai di ID memaksa reflow animasi CSS jalan terus
+            contentAreaEl.innerHTML = `
+                <div id="anim-${activeDiseaseId}" class="animate-fade-in">
+                    
+                    <!-- Header Penyakit -->
+                    <div class="mb-8 relative">
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-14 h-14 rounded-2xl ${theme.bg} ${theme.text} flex items-center justify-center text-3xl shadow-inner border border-white">
+                                <i class="fas ${data.icon}"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-3xl font-extrabold text-slate-800 tracking-tight">${data.name}</h2>
+                                <div class="w-16 h-1 bg-${data.theme}-500 rounded-full mt-2"></div>
+                            </div>
+                        </div>
+                        <p class="text-slate-600 text-[15px] leading-relaxed mb-5 max-w-3xl">${data.desc}</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${sourcesHTML}
+                        </div>
+                    </div>
+
+                    <!-- Do's & Don'ts Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
+                        <div class="bg-gradient-to-br from-emerald-50/80 to-emerald-100/30 border border-emerald-200/60 rounded-2xl p-6 shadow-sm">
+                            <h3 class="font-extrabold text-emerald-800 text-base flex items-center gap-2.5 mb-5 pb-3 border-b border-emerald-200/50">
+                                <div class="w-7 h-7 bg-emerald-500 rounded-full text-white flex items-center justify-center text-xs shadow-sm">
+                                    <i class="fas fa-thumbs-up"></i>
+                                </div>
+                                Sangat Dianjurkan
+                            </h3>
+                            <ul class="space-y-1">${dosHTML}</ul>
+                        </div>
+                        
+                        <div class="bg-gradient-to-br from-rose-50/80 to-rose-100/30 border border-rose-200/60 rounded-2xl p-6 shadow-sm">
+                            <h3 class="font-extrabold text-rose-800 text-base flex items-center gap-2.5 mb-5 pb-3 border-b border-rose-200/50">
+                                <div class="w-7 h-7 bg-rose-500 rounded-full text-white flex items-center justify-center text-xs shadow-sm">
+                                    <i class="fas fa-ban"></i>
+                                </div>
+                                Dibatasi / Dihindari
+                            </h3>
+                            <ul class="space-y-1">${dontsHTML}</ul>
+                        </div>
+                    </div>
+
+                    <!-- Inspirasi Menu Section -->
+                    <div>
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="font-extrabold text-slate-800 text-xl flex items-center gap-3">
+                                <i class="fas fa-utensils text-${data.theme}-500 bg-${data.theme}-100 p-2 rounded-lg"></i> 
+                                Inspirasi Menu Sehat
+                            </h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
+                            ${menusHTML}
+                        </div>
+                    </div>
+
+                </div>
+            `;
+        }
+
+        // --- INISIALISASI ---
+        renderSidebar();
+        renderContent();
+    </script>
+</body>
+</html>
